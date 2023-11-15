@@ -39,10 +39,8 @@ def train_logistic_regression(X, t):
             X_batch = X[b * batch_size: (b + 1) * batch_size]
             t_batch = t[b * batch_size: (b + 1) * batch_size]
 
-            one_vector = np.ones((X_batch.shape[0], 1))
-
-            z = np.matmul(X_batch, w) + b * one_vector
-            y = np.divide(one_vector, one_vector + np.exp(-1 * z))
+            z = np.matmul(X_batch, w) + b
+            y = 1 / (1 + np.exp(-1 * z))
 
             w = w - alpha * np.matmul(np.transpose(X_batch), y - t_batch)
             b = b - alpha * np.sum(y - t_batch)
@@ -57,8 +55,9 @@ def predict_logistic_regression(X, w, b):
     t = np.matmul(X, w) + b
     t[t >= 0] = 1
     t[t < 0] = 0
+    t = np.reshape(t, (-1,))
 
-    return np.reshape(t, (-1,))
+    return t
 
 
 def train_linear_regression(X, t):
