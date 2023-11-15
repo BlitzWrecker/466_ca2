@@ -5,25 +5,25 @@ import matplotlib.pyplot as plt
 
 
 def readMNISTdata():
-    with open('t10k-images-idx3-ubyte', 'rb') as f:
+    with open('t10k-images.idx3-ubyte', 'rb') as f:
         magic, size = struct.unpack(">II", f.read(8))
         nrows, ncols = struct.unpack(">II", f.read(8))
         test_data = np.fromfile(f, dtype=np.dtype(np.uint8).newbyteorder('>'))
         test_data = test_data.reshape((size, nrows*ncols))
 
-    with open('t10k-labels-idx1-ubyte', 'rb') as f:
+    with open('t10k-labels.idx1-ubyte', 'rb') as f:
         magic, size = struct.unpack(">II", f.read(8))
         test_labels = np.fromfile(
             f, dtype=np.dtype(np.uint8).newbyteorder('>'))
         test_labels = test_labels.reshape((size, 1))
 
-    with open('train-images-idx3-ubyte', 'rb') as f:
+    with open('train-images.idx3-ubyte', 'rb') as f:
         magic, size = struct.unpack(">II", f.read(8))
         nrows, ncols = struct.unpack(">II", f.read(8))
         train_data = np.fromfile(f, dtype=np.dtype(np.uint8).newbyteorder('>'))
         train_data = train_data.reshape((size, nrows*ncols))
 
-    with open('train-labels-idx1-ubyte', 'rb') as f:
+    with open('train-labels.idx1-ubyte', 'rb') as f:
         magic, size = struct.unpack(">II", f.read(8))
         train_labels = np.fromfile(
             f, dtype=np.dtype(np.uint8).newbyteorder('>'))
@@ -53,6 +53,21 @@ def predict(X, W, t=None):
     # W: (d+1) x K
 
     # TODO Your code here
+    z = np.matmul(X, W)
+    z_max = np.reshape(np.max(z, axis=1), (-1, 1))
+    z_tilde = z - z_max
+    y_tilde = np.exp(z_tilde)
+    Z = np.reshape(np.sum(y_tilde, axis=1), (-1, 1))
+    y = np.divide(y_tilde, Z)
+    prediction = np.reshape(np.argmax(y, axis=1), (-1, 1))
+    t_hat = np.zeros((t.shape[0], W.shape[1]))
+    for i in range(len(t)):
+        label = t[i][0]
+        t_hat[i][label] = 1
+
+    tmp = np.sum(np.multiply(t_hat, np.log(y)), axis=1)
+    loss = -np.mean(tmp)
+    acc = np.mean((prediction == t).astype(int))
 
     return y, t_hat, loss, acc
 
@@ -62,6 +77,43 @@ def train(X_train, y_train, X_val, t_val):
     N_val = X_val.shape[0]
 
     # TODO Your code here
+    # initialization
+    w = np.zeros([X_train.shape[1], 10])
+    # w: (d+1) x K
+
+    train_losses = []
+    valid_accs = []
+
+    W_best = None
+    acc_best = 0
+    epoch_best = 0
+
+    for epoch in range(MaxEpoch):
+        loss_this_epoch = 0
+
+        for b in range(int(np.ceil(N_train / batch_size))):
+            X_batch = X_train[b * batch_size: (b + 1) * batch_size]
+            t_batch = y_train[b * batch_size: (b + 1) * batch_size]
+
+            y_batch, t_batch_one_hot, loss_batch, _ = predict(X_batch, w, t_batch)
+            loss_this_epoch += loss_batch
+
+            # Mini-batch gradient descent
+            w = w - alpha * np.matmul(np.transpose(X_batch), y_batch - t_batch_one_hot) / X_batch.shape[0]
+
+        # monitor model behavior after each epoch
+        # 1. Compute the training loss by averaging loss_this_epoch
+        train_losses.append(loss_this_epoch)
+
+        # 2. Perform validation on the validation set by the risk
+        _, _, _, acc = predict(X_val, w, t_val)
+        valid_accs.append(acc)
+
+        # 3. Keep track of the best validation epoch, risk, and the weights
+        if acc > acc_best:
+            acc_best = acc
+            epoch_best = epoch
+            W_best = w
 
     return epoch_best, acc_best,  W_best, train_losses, valid_accs
 
@@ -87,3 +139,22 @@ decay = 0.          # weight decay
 epoch_best, acc_best,  W_best, train_losses, valid_accs = train(X_train, t_train, X_val, t_val)
 
 _, _, _, acc_test = predict(X_test, W_best, t_test)
+
+# Report numbers and draw plots as required.
+print("The number of epoch that yielded the best validation performance: %s" % epoch_best)
+print("The validation performance (accuracy) in that epoch: %f" % acc_best)
+print("The test performance (accuracy) in that epoch: %f" % acc_test)
+
+plt.figure()
+plt.title("Learning Curve of the Training Loss")
+plt.xlabel("Number of Epochs")
+plt.ylabel("Training Loss")
+plt.plot(train_losses)
+plt.show()
+
+plt.figure()
+plt.title("Learning Curve of the Validation Accuracy")
+plt.xlabel("Number of Epochs")
+plt.ylabel("Validation Accuracy")
+plt.plot(valid_accs)
+plt.show()
