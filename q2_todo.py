@@ -72,14 +72,19 @@ def predict(X, W, t=None):
     return y, t_hat, loss, acc
 
 
-def train(X_train, y_train, X_val, t_val):
+def train(X_train, y_train, X_val, t_val, adagrad=False):
     N_train = X_train.shape[0]
     N_val = X_val.shape[0]
 
     # TODO Your code here
     # initialization
-    w = np.zeros([X_train.shape[1], 10])
+    w = np.zeros([X_train.shape[1], N_class])
     # w: (d+1) x K
+
+    # AdaGrad
+    G = np.zeros([X_train.shape[1], N_class])
+    # AdaGrad learning rates: (d+1) x K
+    epsilon = 1e-10
 
     train_losses = []
     valid_accs = []
@@ -98,8 +103,15 @@ def train(X_train, y_train, X_val, t_val):
             y_batch, t_batch_one_hot, loss_batch, _ = predict(X_batch, w, t_batch)
             loss_this_epoch += loss_batch
 
+            gradient = np.matmul(np.transpose(X_batch), y_batch - t_batch_one_hot) / X_batch.shape[0]
+            lr = alpha  # learning rate
+
+            if adagrad:
+                G += gradient * gradient
+                lr = alpha / (np.sqrt(G) + epsilon)
+
             # Mini-batch gradient descent
-            w = w - alpha * np.matmul(np.transpose(X_batch), y_batch - t_batch_one_hot) / X_batch.shape[0]
+            w = w - lr * gradient
 
         # monitor model behavior after each epoch
         # 1. Compute the training loss by averaging loss_this_epoch
@@ -136,25 +148,39 @@ decay = 0.          # weight decay
 
 
 # TODO: report 3 number, plot 2 curves
-epoch_best, acc_best,  W_best, train_losses, valid_accs = train(X_train, t_train, X_val, t_val)
+epoch_best, acc_best, W_best, train_losses, valid_accs = train(X_train, t_train, X_val, t_val)
 
 _, _, _, acc_test = predict(X_test, W_best, t_test)
 
+ag_epoch_best, ag_acc_best, ag_W_best, ag_train_losses, ag_valid_accs = (
+    train(X_train, t_train, X_val, t_val, adagrad=True))
+
+_, _, _, ag_acc_test = predict(X_test, ag_W_best, t_test)
+
 # Report numbers and draw plots as required.
+print('===== Part 1 (Baseline) =====')
 print("The number of epoch that yielded the best validation performance: %s" % epoch_best)
 print("The validation performance (accuracy) in that epoch: %f" % acc_best)
 print("The test performance (accuracy) in that epoch: %f" % acc_test)
+
+print('\n===== Part 2 (AdaGrad) =====')
+print("The number of epoch that yielded the best validation performance: %s" % ag_epoch_best)
+print("The validation performance (accuracy) in that epoch: %f" % ag_acc_best)
+print("The test performance (accuracy) in that epoch: %f" % ag_acc_test)
 
 plt.figure()
 plt.title("Learning Curve of the Training Loss")
 plt.xlabel("Number of Epochs")
 plt.ylabel("Training Loss")
-plt.plot(train_losses)
-plt.show()
+plt.plot(train_losses, label='Baseline')
+plt.plot(ag_train_losses, label='AdaGrad')
+plt.legend()
 
 plt.figure()
 plt.title("Learning Curve of the Validation Accuracy")
 plt.xlabel("Number of Epochs")
 plt.ylabel("Validation Accuracy")
-plt.plot(valid_accs)
+plt.plot(valid_accs, label='Baseline')
+plt.plot(ag_valid_accs, label='AdaGrad')
+plt.legend()
 plt.show()
