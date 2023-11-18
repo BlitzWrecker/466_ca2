@@ -65,8 +65,7 @@ def predict(X, W, t=None):
         label = t[i][0]
         t_hat[i][label] = 1
 
-    tmp = np.sum(np.multiply(t_hat, np.log(y)), axis=1)
-    loss = -np.mean(tmp)
+    loss = -np.sum(np.multiply(t_hat, np.log(y)))
     acc = np.mean((prediction == t).astype(int))
 
     return y, t_hat, loss, acc
@@ -115,7 +114,7 @@ def train(X_train, y_train, X_val, t_val, adagrad=False):
 
         # monitor model behavior after each epoch
         # 1. Compute the training loss by averaging loss_this_epoch
-        train_losses.append(loss_this_epoch)
+        train_losses.append(loss_this_epoch / N_train)
 
         # 2. Perform validation on the validation set by the risk
         _, _, _, acc = predict(X_val, w, t_val)
@@ -168,6 +167,23 @@ print("The number of epoch that yielded the best validation performance: %s" % a
 print("The validation performance (accuracy) in that epoch: %f" % ag_acc_best)
 print("The test performance (accuracy) in that epoch: %f" % ag_acc_test)
 
+# Plot part 1 training loss
+plt.figure()
+plt.title("Learning Curve of the Training Loss")
+plt.xlabel("Number of Epochs")
+plt.ylabel("Training Loss")
+plt.plot(train_losses, label='Baseline')
+plt.savefig('Q2.1_training_loss.png')
+
+# Plot part 1 validation accuracy
+plt.figure()
+plt.title("Learning Curve of the Validation Accuracy")
+plt.xlabel("Number of Epochs")
+plt.ylabel("Validation Accuracy")
+plt.plot(valid_accs, label='Baseline')
+plt.savefig('Q2.1_validation_accuracy.png')
+
+# Plot part 2 training loss
 plt.figure()
 plt.title("Learning Curve of the Training Loss")
 plt.xlabel("Number of Epochs")
@@ -175,7 +191,9 @@ plt.ylabel("Training Loss")
 plt.plot(train_losses, label='Baseline')
 plt.plot(ag_train_losses, label='AdaGrad')
 plt.legend()
+plt.savefig('Q2.2_training_loss.png')
 
+# Print part 2 validation accuracy
 plt.figure()
 plt.title("Learning Curve of the Validation Accuracy")
 plt.xlabel("Number of Epochs")
@@ -183,4 +201,4 @@ plt.ylabel("Validation Accuracy")
 plt.plot(valid_accs, label='Baseline')
 plt.plot(ag_valid_accs, label='AdaGrad')
 plt.legend()
-plt.show()
+plt.savefig('Q2.2_validation_accuracy.png')
