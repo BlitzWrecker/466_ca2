@@ -29,21 +29,16 @@ def train_logistic_regression(X, t):
     w = np.zeros((X.shape[1], 1))
     b = 0
 
-    np.random.seed(314)
-    np.random.shuffle(X)
-    np.random.seed(314)
-    np.random.shuffle(t)
-
     for epoch in range(num_of_epochs):
-        for b in range(int(np.ceil(M / batch_size))):
-            X_batch = X[b * batch_size: (b + 1) * batch_size]
-            t_batch = t[b * batch_size: (b + 1) * batch_size]
+        for batch in range(int(np.ceil(M / batch_size))):
+            X_batch = X[batch * batch_size: (batch + 1) * batch_size]
+            t_batch = t[batch * batch_size: (batch + 1) * batch_size]
 
             z = np.matmul(X_batch, w) + b
             y = 1 / (1 + np.exp(-1 * z))
 
-            w = w - alpha * np.matmul(np.transpose(X_batch), y - t_batch)
-            b = b - alpha * np.sum(y - t_batch)
+            w = w - alpha * np.matmul(np.transpose(X_batch), y - t_batch) / X_batch.shape[0]
+            b = b - alpha * np.sum(y - t_batch) / X_batch.shape[0]
 
     return w, b
 
